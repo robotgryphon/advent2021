@@ -1,10 +1,14 @@
-﻿// See https://aka.ms/new-console-template for more information
-var lines = await System.IO.File.ReadAllLinesAsync("input.txt");
-int lastValue = int.Parse(lines[0]);
+﻿using System.Linq;
+
+int window = 3;
+var lines = (await System.IO.File.ReadAllLinesAsync("input.txt")).Select(x => int.Parse(x)).ToArray();
+int windowStart = 1;
 int more = 0;
-for(int l = 1; l < lines.Length; l++) {
-    if(int.Parse(lines[l]) > lastValue) more++;
-    lastValue = int.Parse(lines[l]);
+
+while(windowStart < lines.Length) {
+    if(lines.Skip(windowStart).Take(window).Sum() > lines.Skip(windowStart-1).Take(window).Sum())
+        more++;
+    windowStart++;
 }
 
 Console.WriteLine(more);
