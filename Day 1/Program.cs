@@ -1,7 +1,5 @@
-﻿using System.Linq;
-
-int window = 3;
-var lines = (await System.IO.File.ReadAllLinesAsync("input.txt")).Select(x => int.Parse(x)).ToArray();
+﻿int window = 3;
+var lines = (await File.ReadAllLinesAsync("input.txt")).Select(x => int.Parse(x)).ToArray();
 int windowStart = 1;
 int more = 0;
 
