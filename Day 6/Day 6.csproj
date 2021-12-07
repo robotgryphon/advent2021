@@ -6,6 +6,7 @@
     <RootNamespace>RobotGryphon.AdventOfCode2021.Day6</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;Debug - Actual</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
