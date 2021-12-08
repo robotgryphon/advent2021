@@ -1,35 +1,57 @@
 ﻿using System.Collections;
+using System.Threading.Tasks.Dataflow;
 
+#if SAMPLE
+var lines = await File.ReadAllLinesAsync("sample.txt");
+#else
 var lines = await File.ReadAllLinesAsync("input.txt");
+#endif
+
 int numBits = lines[0].Length;
 
-BitArray[] bits = new BitArray[lines.Length];
 BitArray gamma = new(numBits);
 BitArray epsil = new(numBits);
-for (int lineIndex = 0; lineIndex < bits.Length; lineIndex++)
+
+var convertBitPos = new TransformBlock<int, Tuple<int, bool>>(pos =>
 {
-    var ss = lines[lineIndex];
-    var arr = new BitArray(numBits);
-    for (int bit = 0; bit < numBits; bit++) {
-        var v = Convert.ToInt16(ss[bit]) & 1;
-        arr.Set(bit, v == 1);
-    }
+    Dictionary<bool, int> counts = new();
+    counts.Add(true, 0); counts.Add(false, 0);
 
-    bits[lineIndex] = arr;
-}
+    foreach (string line in lines)
+        counts[line[pos] == '1']++;
 
-for (int bitIndex = 0; bitIndex < numBits; bitIndex++) {
-    var gammaLine = bits.Select(x => x.Get(bitIndex)).GroupBy(x => x).OrderByDescending(x => x.Count()).First();
-    var epsilLine = bits.Select(x => x.Get(bitIndex)).GroupBy(x => x).OrderBy(x => x.Count()).First();
-    gamma.Set(bitIndex, gammaLine.Key);
-    epsil.Set(bitIndex, epsilLine.Key);
-}
+    return Tuple.Create(pos, counts[true] > counts[false]);
+});
 
-int[] t = new int[1];
-gamma.CopyTo(t, 0);
-int gam = t[0];
+var broad = new BroadcastBlock<Tuple<int, bool>>(pos => Tuple.Create(pos.Item1, pos.Item2));
+var setGamma = new ActionBlock<Tuple<int, bool>>(pair => gamma.Set(pair.Item1, pair.Item2));
+var setEpsilon = new ActionBlock<Tuple<int, bool>>(pair => epsil.Set(pair.Item1, !pair.Item2));
 
-epsil.CopyTo(t, 0);
-int eps = t[0];
+var opts = new DataflowLinkOptions { PropagateCompletion = true };
+convertBitPos.LinkTo(broad, opts);
+broad.LinkTo(setGamma, opts);
+broad.LinkTo(setEpsilon, opts);
+
+for (int p = 0; p < numBits; p++)
+    convertBitPos.Post(p);
+
+convertBitPos.Complete();
+
+await Task.WhenAll(setGamma.Completion, setEpsilon.Completion);
+
+int gam = c(gamma);
+int eps = c(epsil);
 
 Console.WriteLine(gam * eps);
+
+static int c(BitArray b)
+{
+    int res = 0;
+    Span<char> t = new char[b.Count].AsSpan();
+    t.Fill('0');
+
+    for (int p = 0; p < b.Count; p++)
+        t.Slice(p, 1).Fill(b.Get(p) ? '1' : '0');
+
+    return Convert.ToInt32(new string(t.ToArray()), 2);
+}
