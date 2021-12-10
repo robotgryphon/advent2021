@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using RobotGryphon.AdventOfCode2021.Day8;
+using System.Numerics;
 
 string file = "";
 #if SAMPLE
@@ -10,45 +11,23 @@ file = "vents.txt";
 string[] lines = File.ReadAllLines(file);
 Vector2 dims = new Vector2(lines[0].Length, lines.Length);
 
-Dictionary<Vector2, int> points = new();
-for(int z = 0; z < dims.Y; z++)
+PointMap map = new PointMap(dims);
+map.Build(lines);
+map.GrowBasins();
+
+var largest3 = map.Basins.OrderByDescending(x => x.NumPoints).Take(3);
+int total = 1;
+foreach (var basin in largest3)
 {
-    for(int x = 0; x < dims.X; x++)
-    {
-        points.Add(new Vector2(x, z), int.Parse(lines[z][x].ToString()));
-    }
+    total *= basin.NumPoints;
+    Console.WriteLine(basin.NumPoints);
 }
 
-List<Vector2> lowpoints = new();
-foreach(var point in points.Keys)
-{
-    Vector2[] surroundings = new[]
-    {
-        new Vector2(point.X - 1, point.Y),
-        new Vector2(point.X + 1, point.Y),
-        new Vector2(point.X, point.Y - 1),
-        new Vector2(point.X, point.Y + 1),
-    };
+Console.WriteLine();
+Console.WriteLine(total);
 
-    if(surroundings.All(s => points.ContainsKey(s) ? points[s] > points[point] : true))
-        lowpoints.Add(point);
-}
-
-int danger = lowpoints.Sum(x => points[x] + 1);
-Console.WriteLine(danger);
+// int danger = map.ElevationMap.Sum(x => points[x] + 1);
+// Console.WriteLine(danger);
 Console.WriteLine();
 
-foreach(var p in points.GroupBy(p => p.Key.Y).OrderBy(x => x.Key))
-{
-    foreach (var point in p)
-    {
-        if (lowpoints.Contains(point.Key))
-            Console.ForegroundColor = ConsoleColor.Red;
-        else
-            Console.ForegroundColor = ConsoleColor.White;
-
-        Console.Write(point.Value);
-    }
-
-    Console.WriteLine();
-}
+map.Display();
